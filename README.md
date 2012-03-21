@@ -17,6 +17,7 @@ Resources
 I have found quite a lot of implementations already existing that time, but non of them were working how I wanted to represent the problem.
 
 You can find all these sources under the `res` directory, written by:
+
 * [Larry Holder](mailto:holder@cse.uta.edu)
 * [Nicolas Hernandez](http://archives.limsi.fr/Individu/hernandz/)
 
