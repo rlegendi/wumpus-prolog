@@ -5,6 +5,14 @@
 % Mandatory Excercise 2007
 % v1.0 - Jan. 31, 2007
 % Richard O. Legendi
+%
+% Copied into prolog-examples with permission Richard O. Legendi
+% Original exercise descriped in  Artificial Intelligence : A Modern Approach (Russel - Norvig)
+%
+% Usage:
+% consult this file
+% ?-start.
+%
 %------------------------------------------------------------------------------
 
 
@@ -15,12 +23,15 @@
 	     agent_location/1,
 	     gold_location/1,
 	     pit_location/1,
-	     time/1,
+	     time_taken/1,
 	     score/1,
 	     visited/1,
 	     visited_cells/1,
 	     world_size/1,
-	     wumpus_location/1
+	     wumpus_location/1,
+             isPit/2,
+             isWumpus/2,
+             isGold/2
 	    ]).
 
 
@@ -28,11 +39,10 @@
 % To start the game
 
 start :-
-    format("Initializing started...~n", []),
+    format('Initializing started...~n', []),
     init,
-    
-    format("Let the game begin!~n", []),
-    step([[1,1]]).
+    format('Let the game begin!~n', []),
+    take_steps([[1,1]]).
 
 %------------------------------------------------------------------------------
 % Scheduling simulation:
@@ -41,28 +51,27 @@ step_pre(VisitedList) :-
     agent_location(AL),
     gold_location(GL),
     wumpus_location(WL),
-
     score(S),
-    time(T),
+    time_taken(T),
 
-    ( AL=GL -> format("WON!~n", []), format("Score: ~p,~n Time: ~p", [S,T])
-    ; AL=WL -> format("Lost: Wumpus eats you!~n", []),
-               format("Score: ~p,~n Time: ~p", [S,T])
-    ; step(VisitedList)
+    ( AL=GL -> writeln('WON!'), format('Score: ~p,~n Time: ~p', [S,T])
+    ; AL=WL -> format('Lost: Wumpus eats you!~n', []),
+               format('Score: ~p,~n Time: ~p', [S,T])
+    ; take_steps(VisitedList)
     ).
 
-step(VisitedList) :-
+take_steps(VisitedList) :-
     make_percept_sentence(Perception),
     agent_location(AL),
-    format("I'm in ~p, seeing: ~p~n", [AL,Perception]),
-    
+    format('I\'m in ~p, seeing: ~p~n', [AL,Perception]),
+
     update_KB(Perception),
     ask_KB(VisitedList, Action),
-    format("I'm going to: ~p~n", [Action]),
+    format('I\'m going to: ~p~n', [Action]),
 
     update_time,
     update_score,
-    
+
     agent_location(Aloc),
     VL = [Aloc|VisitedList],
     standing,
@@ -72,10 +81,10 @@ step(VisitedList) :-
 % Updating states
 
 update_time :-
-    time(T),
+    time_taken(T),
     NewTime is T+1,
-    retractall( time(_) ),
-    assert( time(NewTime) ).
+    retractall( time_taken(_) ),
+    assert( time_taken(NewTime) ).
 
 update_score :-
     agent_location(AL),
@@ -96,11 +105,11 @@ update_score(_,_,_) :-
     update_score(-1).
 
 update_agent_location(NewAL) :-
-    agent_location(AL),
     retractall( agent_location(_) ),
     assert( agent_location(NewAL) ).
 
-is_pit(no,  X).
+is_pit(no,  X) :-
+    \+ pit_location(X).
 is_pit(yes, X) :-
     pit_location(X).
 
@@ -112,21 +121,21 @@ standing :-
     gold_location(GL),
     agent_location(AL),
 
-    ( is_pit(yes, AL) -> format("Agent was fallen into a pit!~n", []),
+    ( is_pit(yes, AL) -> format('Agent was fallen into a pit!~n', []),
       fail
-    ; stnd(AL, GL, WL) 
+    ; stnd(AL, GL, WL)
       %\+ pit_location(yes, Al),
     ).
 
-stnd(AL, GL, WL) :-
-    format("There's still something to do...~n", []).
+stnd(_, _, _) :-
+    format('There\'s still something to do...~n', []).
 
 stnd(AL, _, AL) :-
-    format("YIKES! You're eaten by the wumpus!", []),
+    format('YIKES! You\'re eaten by the wumpus!', []),
     fail.
 
 stnd(AL, AL, _) :-
-    format("AGENT FOUND THE GOLD!!", []),
+    format('AGENT FOUND THE GOLD!!', []),
     true.
 
 %------------------------------------------------------------------------------
@@ -140,7 +149,7 @@ make_perception([_Stench,_Bleeze,_Glitter]) :-
 
 test_perception :-
 	make_percept_sentence(Percept),
-	format("I feel ~p, ",[Percept]).
+	format('I feel ~p, ',[Percept]).
 
 make_percept_sentence([Stench,Bleeze,Glitter]) :-
 	smelly(Stench),
@@ -157,18 +166,18 @@ init :-
     init_wumpus.
 
 init_game :-
-    retractall( time(_) ),
-    assert( time(0) ),
+    retractall( time_taken(_) ),
+    assert( time_taken(0) ),
 
     retractall( score(_) ),
     assert( score(0) ),
-    
+
     retractall( visited(_) ),
     assert( visited(1) ),
 
     retractall( isWumpus(_,_) ),
     retractall( isGold(_,_) ),
-    
+
     retractall( visited_cells(_) ),
     assert( visited_cells([]) ).
 
@@ -189,7 +198,7 @@ init_land_fig72 :-
 init_agent :-
     retractall( agent_location(_) ),
     assert( agent_location([1,1]) ),
-    
+
     visit([1,1]).
 
 init_wumpus :-
@@ -266,17 +275,17 @@ update_KB( [Stench,Bleeze,Glitter] ) :-
     add_pit_KB(Bleeze),
     add_gold_KB(Glitter).
 
-% if it would be "yes" -> it would mean the player is eaten ;]
+% if it would be 'yes' -> it would mean the player is eaten ;]
 add_wumpus_KB(no) :-
     %agent_location(L1),
     %adjacent(L1, L2),
     %assume_wumpus(no, L2).
     agent_location([X,Y]),
-    world_size(WS),
+    world_size(_),
 
     % Checking needed!!
     % adj will freeze for (4,_) !!
-    
+
     Z1 is Y+1, assume_wumpus(no,[X,Z1]),
     Z2 is Y-1, assume_wumpus(no,[X,Z2]),
     Z3 is X+1, assume_wumpus(no,[Z3,Y]),
@@ -300,7 +309,7 @@ add_pit_KB(yes) :-
 add_gold_KB(no) :-
     gold_location(GL),
     assume_gold(no, GL).
-    
+
 add_gold_KB(yes) :-
     gold_location([X1,Y1]),
     agent_location([X2,Y2]),
@@ -310,33 +319,33 @@ add_gold_KB(yes) :-
 assume_wumpus(no, L) :-
     retractall( isWumpus(_, L) ),
     assert( isWumpus(no, L) ),
-    format("KB learn ~p - no Wumpus there!~n", [L]).
+    format('KB learn ~p - no Wumpus there!~n', [L]).
 
 assume_wumpus(yes, L) :-
     %wumpus_healthy, % Will be included ...
     retractall( isWumpus(_, L) ),
     assert( isWumpus(yes, L) ),
-    format("KB learn ~p - possibly the Wumpus is there!~n", [L]).
+    format('KB learn ~p - possibly the Wumpus is there!~n', [L]).
 
 assume_pit(no, L) :-
     retractall( isPit(_, L) ),
     assert( isPit(no, L) ),
-    format("KB learn ~p - there's no Pit there!~n", [L]).
+    format('KB learn ~p - there\'s no Pit there!~n', [L]).
 
 assume_pit(yes, L) :-
     retractall( isPit(_, L) ),
     assert( isPit(yes, L) ),
-    format("KB learn ~p - its a Pit!~n", [L]).
+    format('KB learn ~p - its a Pit!~n', [L]).
 
 assume_gold(no, L) :-
     retractall( isGold(_, L) ),
     assert( isGold(no, L) ),
-    format("KB learn ~p - there's no gold here!~n", [L]).
+    format('KB learn ~p - there\'s no gold here!~n', [L]).
 
 assume_gold(yes, L) :-
     retractall( isGold(_, L) ),
     assert( isGold(yes, L) ),
-    format("KB learn ~p - GOT THE GOLD!!!~n", [L]).
+    format('KB learn ~p - GOT THE GOLD!!!~n', [L]).
 
 permitted([X,Y]) :-
     world_size(WS),
@@ -354,7 +363,7 @@ ask_KB(VisitedList, Action) :-
 %------------------------------------------------------------------------------
 % Utils
 
-not_member(X, []).
+not_member(_, []).
 not_member([X,Y], [[U,V]|Ys]) :-
     ( X=U,Y=V -> fail
     ; not_member([X,Y], Ys)
